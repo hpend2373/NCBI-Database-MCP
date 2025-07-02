@@ -1,44 +1,39 @@
-# Bio-MCP BLAST
+# NCBI Database MCP
 
-🔍 **MCP server for NCBI BLAST sequence similarity search**
+🔍 **MCP server for NCBI bioinformatics tools and database access**
 
-Enable AI assistants to perform BLAST searches through natural language. Search nucleotide and protein databases, create custom databases, and get formatted results instantly.
+Enable AI assistants to perform gene searches, BLAST analysis, and genomic sequence retrieval through natural language. Access NCBI databases including Gene, PubMed, and BLAST services.
 
 ## 🧬 Features
 
-- **blastn** - Nucleotide-nucleotide BLAST search
-- **blastp** - Protein-protein BLAST search  
-- **makeblastdb** - Create custom BLAST databases
-- **Multiple output formats** - JSON, XML, tabular, pairwise
-- **Flexible input** - File paths or raw sequences
-- **Queue support** - Async processing for large searches
+- **Gene-to-Genomic Conversion** - Convert gene names to genomic DNA sequences
+- **BLAST Search** - Nucleotide and protein similarity searches
+- **NCBI Database Access** - Gene, PubMed, and sequence databases
+- **Multiple Output Formats** - FASTA, GenBank, JSON
+- **Flexible Input** - Gene names, sequences, or file paths
+- **Multiple Organisms** - Human, mouse, and other model organisms
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Install BLAST+
-conda install -c bioconda blast
+# Clone repository
+git clone https://github.com/hpend2373/NCBI-Database-MCP.git
+cd NCBI-Database-MCP
 
-# Or via package manager
-# macOS: brew install blast
-# Ubuntu: sudo apt-get install ncbi-blast+
-
-# Install MCP server
-git clone https://github.com/bio-mcp/bio-mcp-blast.git
-cd bio-mcp-blast
-pip install -e .
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ### Basic Usage
 
 ```bash
-# Start the server
-python -m src.server
+# Start the gene-to-genomic server
+python src/gene_to_genomic_server.py
 
-# Or with queue support
-python -m src.main --mode queue
+# Or start the FastMCP version
+python src/fastmcp_gene_server.py
 ```
 
 ### Configuration
@@ -48,10 +43,10 @@ Add to your MCP client config:
 ```json
 {
   "mcpServers": {
-    "bio-blast": {
+    "ncbi-database": {
       "command": "python",
-      "args": ["-m", "src.server"],
-      "cwd": "/path/to/bio-mcp-blast"
+      "args": ["src/gene_to_genomic_server.py"],
+      "cwd": "/path/to/NCBI-Database-MCP"
     }
   }
 }
@@ -59,274 +54,111 @@ Add to your MCP client config:
 
 ## 💡 Usage Examples
 
-### Simple Sequence Search
+### Gene to Genomic Sequence
 ```
-User: "BLAST this sequence against nr: ATGCGATCGATCG"
-AI: [calls blastn] → Returns top hits with E-values and alignments
-```
-
-### File-Based Search
-```
-User: "Search proteins.fasta against SwissProt database"
-AI: [calls blastp] → Processes file and returns similarity results
+User: "Get the genomic sequence for BRCA1"
+AI: [calls gene_to_genomic_sequence] → Returns genomic DNA sequence in FASTA format
 ```
 
-### Database Creation
+### Gene Information Search
 ```
-User: "Create a BLAST database from reference_genomes.fasta"
-AI: [calls makeblastdb] → Creates searchable database files
+User: "Find information about TP53 gene"
+AI: [calls search_gene_info] → Returns gene location, function, and coordinates
 ```
 
-### Long-Running Search
+### Coordinate-Based Sequence
 ```
-User: "BLAST large_dataset.fasta against nt database"
-AI: [calls blastn_async] → "Job submitted! ID: abc123, checking progress..."
+User: "Get sequence from chr17:43044295-43125483"
+AI: [calls get_genomic_sequence] → Returns DNA sequence for specified coordinates
 ```
 
 ## 🛠️ Available Tools
 
-### `blastn`
-Nucleotide-nucleotide BLAST search
+### `gene_to_genomic_sequence`
+Convert gene name to genomic DNA sequence
 
 **Parameters:**
-- `query` (required) - Path to FASTA file or sequence string
-- `database` (required) - Database name (e.g., "nt", "nr") or path
-- `evalue` - E-value threshold (default: 10)
-- `max_hits` - Maximum hits to return (default: 50)
-- `output_format` - Output format: "tabular", "xml", "json", "pairwise"
+- `gene_name` (required) - Gene symbol or name
+- `organism` - Target organism (default: "human")
+- `sequence_type` - "genomic", "cds", "mrna", "protein"
+- `output_format` - "fasta", "genbank", "json"
 
-### `blastp`
-Protein-protein BLAST search
-
-**Parameters:**
-- Same as blastn, but for protein sequences
-
-### `makeblastdb`
-Create BLAST database from FASTA file
+### `search_gene_info`
+Search for gene information and genomic location
 
 **Parameters:**
-- `input_file` (required) - Path to FASTA file
-- `database_name` (required) - Name for output database
-- `dbtype` (required) - "nucl" or "prot"
-- `title` - Database title (optional)
+- `gene_name` (required) - Gene symbol or name
+- `organism` - Target organism (default: "human")
 
-### Async Variants (Queue Mode)
-- `blastn_async` - Submit nucleotide search to queue
-- `blastp_async` - Submit protein search to queue
-- `get_job_status` - Check job progress
-- `get_job_result` - Retrieve completed results
+### `get_genomic_sequence`
+Get genomic sequence from chromosome coordinates
+
+**Parameters:**
+- `chromosome` (required) - Chromosome number/name
+- `start` (required) - Start position
+- `end` (required) - End position
+- `organism` - Target organism (default: "human")
 
 ## ⚙️ Configuration
 
 ### Environment Variables
 
 ```bash
-# Basic settings
-export BIO_MCP_MAX_FILE_SIZE=100000000    # 100MB max file size
-export BIO_MCP_TIMEOUT=300                # 5 minute timeout
-export BIO_MCP_BLAST_PATH="blastn"        # BLAST executable path
-
-# Queue mode settings
-export BIO_MCP_QUEUE_URL="http://localhost:8000"
+# NCBI API settings
+export NCBI_API_KEY="your_api_key_here"  # Optional but recommended
+export NCBI_EMAIL="your_email@example.com"  # Required for API access
 ```
-
-### Database Setup
-
-```bash
-# Download common databases
-mkdir -p ~/blast-databases
-cd ~/blast-databases
-
-# NCBI databases (large downloads!)
-update_blastdb.pl --decompress nt
-update_blastdb.pl --decompress nr
-update_blastdb.pl --decompress swissprot
-
-# Set environment variable
-export BLASTDB=~/blast-databases
-```
-
-## 🐳 Docker Deployment
-
-### Local Docker
-
-```bash
-# Build image
-docker build -t bio-mcp-blast .
-
-# Run container
-docker run -p 5000:5000 \
-  -v ~/blast-databases:/data/blast-db:ro \
-  -e BLASTDB=/data/blast-db \
-  bio-mcp-blast
-```
-
-### Docker Compose
-
-```yaml
-services:
-  blast-server:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./databases:/data/blast-db:ro
-    environment:
-      - BLASTDB=/data/blast-db
-      - BIO_MCP_TIMEOUT=600
-```
-
-## 🔄 Queue System
-
-For long-running BLAST searches, use the queue system:
-
-### Setup
-
-```bash
-# Start queue infrastructure
-cd ../bio-mcp-queue
-./setup-local.sh
-
-# Start BLAST server with queue support
-python -m src.main --mode queue --queue-url http://localhost:8000
-```
-
-### Usage
-
-```python
-# Submit async job
-job_info = await blast_server.submit_job(
-    job_type="blastn",
-    parameters={
-        "query": "large_sequences.fasta",
-        "database": "nt",
-        "evalue": 0.001
-    }
-)
-
-# Check status
-status = await blast_server.get_job_status(job_info["job_id"])
-
-# Get results when complete
-results = await blast_server.get_job_result(job_info["job_id"])
-```
-
-## 📊 Output Formats
-
-### Tabular (Default)
-```
-# Fields: query_id, subject_id, percent_identity, alignment_length, ...
-Query_1    gi|123456    98.5    500    7    0    1    500    1000    1499    1e-180    633
-```
-
-### JSON
-```json
-{
-  "BlastOutput2": [{
-    "report": {
-      "results": {
-        "search": {
-          "query_title": "Query_1",
-          "hits": [...]
-        }
-      }
-    }
-  }]
-}
-```
-
-### XML
-Standard BLAST XML format for programmatic parsing.
 
 ## 🧪 Testing
 
 ```bash
-# Run tests
-pytest tests/ -v
+# Run basic tests
+python test_gene_to_genomic.py
 
-# Test with real data
-python tests/test_integration.py
+# Test FastMCP version
+python test_fastmcp_gene.py
 
-# Performance testing
-python tests/benchmark.py
+# Test specific gene
+python debug_gene.py
 ```
 
 ## 📈 Performance Tips
 
-### Local Optimization
-- Use SSD storage for databases
-- Increase available RAM
-- Use multiple CPU cores: `export BLAST_NUM_THREADS=8`
-
-### Database Selection
-- Use smaller, specific databases when possible
-- Consider pre-filtering sequences
-- Use appropriate E-value thresholds
-
-### Queue Optimization
-- Scale workers based on CPU cores
-- Use separate queues for different database sizes
-- Monitor memory usage with large databases
-
-## 🔐 Security
-
-### Input Validation
-- File size limits prevent resource exhaustion
-- Path validation prevents directory traversal
-- Command injection protection
-
-### Sandboxing
-- Containers run as non-root user
-- Temporary files isolated per job
-- Network access restricted in production
+- Get NCBI API key for higher rate limits
+- Use appropriate sequence types for your needs
+- Cache results for repeated queries
+- Consider organism-specific databases
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-**BLAST not found**
+**Gene not found**
 ```bash
-# Check installation
-which blastn
-blastn -version
-
-# Install via conda
-conda install -c bioconda blast
+# Check gene name spelling
+# Try alternative gene symbols
+# Verify organism specification
 ```
 
-**Database not found**
+**API rate limiting**
 ```bash
-# Check BLASTDB environment variable
-echo $BLASTDB
-
-# List available databases
-blastdbcmd -list /path/to/databases
+# Set NCBI_API_KEY environment variable
+# Add delays between requests
+# Use smaller batch sizes
 ```
 
-**Out of memory**
+**Network timeouts**
 ```bash
-# Reduce max_target_seqs
-blastn -max_target_seqs 100
-
-# Use streaming for large outputs
-# Increase system swap space
-```
-
-**Timeout errors**
-```bash
-# Increase timeout
-export BIO_MCP_TIMEOUT=3600  # 1 hour
-
-# Or use queue mode for long searches
-python -m src.main --mode queue
+# Check internet connection
+# Increase timeout values
+# Retry failed requests
 ```
 
 ## 📚 Resources
 
+- **[NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/)**
+- **[Gene Database](https://www.ncbi.nlm.nih.gov/gene)**
 - **[BLAST Documentation](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs)**
-- **[BLAST Databases](https://ftp.ncbi.nlm.nih.gov/blast/db/)**
-- **[Bio-MCP Examples](https://github.com/bio-mcp/bio-mcp-examples)**
-- **[Queue System Setup](https://github.com/bio-mcp/bio-mcp-queue)**
 
 ## 🤝 Contributing
 
@@ -336,19 +168,16 @@ python -m src.main --mode queue
 4. Ensure all tests pass
 5. Submit a pull request
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file.
 
 ## 🆘 Support
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/bio-mcp/bio-mcp-blast/issues)
-- 💡 **Feature Requests**: [GitHub Issues](https://github.com/bio-mcp/bio-mcp-blast/issues/new?template=feature_request.md)
-- 📖 **Documentation**: [Bio-MCP Docs](https://github.com/bio-mcp/bio-mcp-docs)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/bio-mcp/bio-mcp-blast/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/hpend2373/NCBI-Database-MCP/issues)
+- 💡 **Feature Requests**: [GitHub Issues](https://github.com/hpend2373/NCBI-Database-MCP/issues/new)
+- 📖 **Documentation**: [README.md](README.md)
 
 ---
 
-*Happy BLASTing! 🧬🔍*
+*Happy genomics research! 🧬🔍*
