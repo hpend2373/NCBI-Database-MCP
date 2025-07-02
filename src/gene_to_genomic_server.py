@@ -125,6 +125,39 @@ class GeneToGenomicServer:
                         "required": ["chromosome", "start", "end"]
                     }
                 ),
+                Tool(
+                    name="search_geo_datasets",
+                    description="Search GEO datasets by disease/condition and organism",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "disease": {
+                                "type": "string",
+                                "description": "Disease or condition name (e.g., 'cancer', 'diabetes', 'Alzheimer')"
+                            },
+                            "organism": {
+                                "type": "string",
+                                "description": "Organism (default: 'Homo sapiens')",
+                                "default": "Homo sapiens",
+                                "enum": ["Homo sapiens", "Mus musculus", "Rattus norvegicus"]
+                            },
+                            "study_type": {
+                                "type": "string",
+                                "description": "Type of expression study (optional)",
+                                "enum": ["Expression profiling by array", "Expression profiling by high throughput sequencing", "Genome binding/occupancy profiling by high throughput sequencing"],
+                                "default": ""
+                            },
+                            "max_results": {
+                                "type": "integer",
+                                "description": "Maximum number of results to return (default: 10)",
+                                "default": 10,
+                                "minimum": 1,
+                                "maximum": 50
+                            }
+                        },
+                        "required": ["disease"]
+                    }
+                ),
             ]
         
         @self.server.call_tool()
@@ -135,6 +168,8 @@ class GeneToGenomicServer:
                 return await self._search_gene_info(arguments)
             elif name == "get_genomic_sequence":
                 return await self._get_genomic_sequence(arguments)
+            elif name == "search_geo_datasets":
+                return await self._search_geo_datasets(arguments)
             else:
                 raise McpError(f"Unknown tool: {name}")
     
@@ -225,6 +260,159 @@ class GeneToGenomicServer:
         except Exception as e:
             logger.error(f"Error getting genomic sequence: {e}", exc_info=True)
             raise McpError(f"Error: {str(e)}")
+    
+    async def _search_geo_datasets(self, arguments: dict) -> list[TextContent]:
+        """Search GEO datasets by disease and organism"""
+        try:
+            disease = arguments["disease"]
+            organism = arguments.get("organism", "Homo sapiens")
+            study_type = arguments.get("study_type", "")
+            max_results = arguments.get("max_results", 10)
+            
+            logger.info(f"Searching GEO datasets for: {disease} in {organism}")
+            
+            # Build search query
+            query_parts = [disease]
+            query_parts.append(f'"{organism}"[Organism]')
+            
+            if study_type:
+                query_parts.append(f'"{study_type}"[DataSet Type]')
+                
+            query = " AND ".join(query_parts)
+            
+            # Search GDS (Gene Expression Omnibus DataSets)
+            search_url = f"{self.settings.ncbi_base_url}/esearch.fcgi"
+            search_params = {
+                'db': 'gds',
+                'term': query,
+                'retmax': max_results,
+                'retmode': 'xml'
+            }
+            
+            if self.settings.ncbi_api_key:
+                search_params['api_key'] = self.settings.ncbi_api_key
+                
+            search_query = urllib.parse.urlencode(search_params)
+            search_request_url = f"{search_url}?{search_query}"
+            
+            search_data = await self._make_http_request(search_request_url)
+            search_root = ET.fromstring(search_data)
+            id_list = search_root.find('.//IdList')
+            
+            if id_list is None or len(id_list) == 0:
+                return [TextContent(type="text", text=f"❌ No GEO datasets found for '{disease}' in {organism}")]
+                
+            dataset_ids = [id_elem.text for id_elem in id_list.findall('Id')]
+            logger.info(f"Found {len(dataset_ids)} datasets")
+            
+            # Get detailed information for each dataset
+            summary_url = f"{self.settings.ncbi_base_url}/esummary.fcgi"
+            summary_params = {
+                'db': 'gds',
+                'id': ','.join(dataset_ids),
+                'retmode': 'xml'
+            }
+            
+            if self.settings.ncbi_api_key:
+                summary_params['api_key'] = self.settings.ncbi_api_key
+                
+            summary_query = urllib.parse.urlencode(summary_params)
+            summary_request_url = f"{summary_url}?{summary_query}"
+            
+            summary_data = await self._make_http_request(summary_request_url)
+            summary_root = ET.fromstring(summary_data)
+            
+            # Parse results
+            results = []
+            for doc_sum in summary_root.findall('.//DocSum'):
+                dataset_info = self._parse_geo_dataset(doc_sum)
+                if dataset_info:
+                    results.append(dataset_info)
+                    
+            if not results:
+                return [TextContent(type="text", text=f"❌ No detailed information available for GEO datasets")]
+                
+            # Format output
+            output_lines = [
+                f"🧬 **GEO Datasets for '{disease}' in {organism}**",
+                f"Found {len(results)} dataset(s)\n"
+            ]
+            
+            for i, dataset in enumerate(results, 1):
+                output_lines.extend([
+                    f"**{i}. {dataset['title']}**",
+                    f"   📊 **GDS ID**: {dataset['accession']}",
+                    f"   🔬 **Study Type**: {dataset['study_type']}",
+                    f"   🧪 **Platform**: {dataset['platform']}",
+                    f"   📈 **Sample Count**: {dataset['sample_count']}",
+                    f"   📝 **Summary**: {dataset['summary'][:200]}{'...' if len(dataset['summary']) > 200 else ''}",
+                    f"   🔗 **URL**: https://www.ncbi.nlm.nih.gov/sites/GDSbrowser?acc={dataset['accession']}\n"
+                ])
+                
+            result_text = "\n".join(output_lines)
+            return [TextContent(type="text", text=result_text)]
+            
+        except Exception as e:
+            logger.error(f"Error searching GEO datasets: {str(e)}")
+            return [TextContent(type="text", text=f"❌ Error searching GEO datasets: {str(e)}")]
+    
+    def _parse_geo_dataset(self, doc_sum) -> dict:
+        """Parse GEO dataset information from XML"""
+        try:
+            dataset = {}
+            
+            # Get basic info
+            dataset['id'] = doc_sum.find('./Id').text if doc_sum.find('./Id') is not None else 'Unknown'
+            
+            # Parse items
+            for item in doc_sum.findall('./Item'):
+                name = item.get('Name', '')
+                value = item.text or ''
+                
+                if name == 'Accession':
+                    dataset['accession'] = value
+                elif name == 'title':
+                    dataset['title'] = value
+                elif name == 'summary':
+                    dataset['summary'] = value
+                elif name == 'GPL':
+                    dataset['platform'] = value
+                elif name == 'taxon':
+                    dataset['organism'] = value
+                elif name == 'entryType':
+                    dataset['study_type'] = self._get_study_type_description(value)
+                elif name == 'n_samples':
+                    dataset['sample_count'] = value
+                    
+            # Set defaults for missing fields
+            dataset.setdefault('title', 'Unknown Title')
+            dataset.setdefault('summary', 'No summary available')
+            dataset.setdefault('platform', 'Unknown Platform')
+            dataset.setdefault('study_type', 'Unknown Study Type')
+            dataset.setdefault('sample_count', 'Unknown')
+            dataset.setdefault('accession', 'Unknown')
+            
+            return dataset
+            
+        except Exception as e:
+            logger.error(f"Error parsing GEO dataset: {str(e)}")
+            return None
+    
+    def _get_study_type_description(self, entry_type: str) -> str:
+        """Get descriptive study type"""
+        study_types = {
+            'SAGE': 'SAGE (Serial Analysis of Gene Expression)',
+            'Array': 'Microarray Expression Profiling',
+            'ChIP-chip': 'ChIP-chip (Chromatin Immunoprecipitation)',
+            'Protein profiling': 'Protein Expression Profiling',
+            'SNP': 'SNP (Single Nucleotide Polymorphism) Analysis',
+            'Methylation profiling': 'DNA Methylation Profiling',
+            'RNA-Seq': 'RNA Sequencing (RNA-Seq)',
+            'ChIP-Seq': 'ChIP-Seq (Chromatin Immunoprecipitation Sequencing)',
+            'Bisulfite-Seq': 'Bisulfite Sequencing',
+            'Other': 'Other High-Throughput Study'
+        }
+        return study_types.get(entry_type, f"{entry_type} Expression Study")
     
     async def _search_gene_ncbi(self, gene_name: str, organism: str) -> Optional[dict]:
         """Search for gene in NCBI Gene database"""
