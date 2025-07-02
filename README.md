@@ -29,11 +29,11 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```bash
-# Start the gene-to-genomic server
-python src/gene_to_genomic_server.py
+# Start the FastMCP server (recommended)
+./run_fastmcp_gene_server.sh
 
-# Or start the FastMCP version
-python src/fastmcp_gene_server.py
+# Or start the standard MCP server
+python src/gene_to_genomic_server.py
 ```
 
 ### Configuration
@@ -109,17 +109,17 @@ export NCBI_API_KEY="your_api_key_here"  # Optional but recommended
 export NCBI_EMAIL="your_email@example.com"  # Required for API access
 ```
 
-## 🧪 Testing
+## 📁 Project Structure
 
-```bash
-# Run basic tests
-python test_gene_to_genomic.py
-
-# Test FastMCP version
-python test_fastmcp_gene.py
-
-# Test specific gene
-python debug_gene.py
+```
+NCBI-Database-MCP/
+├── README.md                    # Documentation
+├── requirements.txt             # Python dependencies
+├── pyproject.toml              # Project configuration
+├── run_fastmcp_gene_server.sh  # Launch script
+└── src/
+    ├── gene_to_genomic_server.py  # Standard MCP server
+    └── fastmcp_gene_server.py     # FastMCP server (recommended)
 ```
 
 ## 📈 Performance Tips
