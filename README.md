@@ -2,7 +2,7 @@
 
 🔍 **MCP server for NCBI bioinformatics tools and disease-focused gene expression research**
 
-Enable AI assistants to discover gene expression datasets by disease/condition, convert gene names to genomic sequences, and access comprehensive NCBI databases through natural language. Perfect for researchers studying disease mechanisms and therapeutic targets.
+Enable AI assistants to discover gene expression datasets by disease/condition and access comprehensive NCBI databases through natural language. Perfect for researchers studying disease mechanisms and therapeutic targets.
 
 ## 🧬 Features
 
@@ -204,10 +204,6 @@ NCBI-Database-MCP/
 - **Start with small result sets**: Use max_results=5-10 for initial exploration
 - **Organism specificity**: Use exact names ("Homo sapiens" not "human")
 
-### 🚀 API Performance
-- **Get NCBI API key**: 10 requests/second vs 3 requests/second without key
-- **Batch similar queries**: Group related searches together
-- **Cache results**: Store frequently accessed datasets locally
 
 ## 🐛 Troubleshooting
 
@@ -245,14 +241,9 @@ NCBI-Database-MCP/
 
 ## 📚 Resources
 
-- **[NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/)**
 - **[Gene Database](https://www.ncbi.nlm.nih.gov/gene)**
 - **[BLAST Documentation](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs)**
 
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file.
 
 ## 🆘 Support
 
