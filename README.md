@@ -7,10 +7,10 @@ Enable AI assistants to perform gene searches, BLAST analysis, and genomic seque
 ## 🧬 Features
 
 - **Gene-to-Genomic Conversion** - Convert gene names to genomic DNA sequences
-- **BLAST Search** - Nucleotide and protein similarity searches
-- **NCBI Database Access** - Gene, PubMed, and sequence databases
+- **GEO Dataset Search** - Find gene expression datasets by disease and organism
+- **NCBI Database Access** - Gene, GEO, and sequence databases
 - **Multiple Output Formats** - FASTA, GenBank, JSON
-- **Flexible Input** - Gene names, sequences, or file paths
+- **Disease-Focused Research** - Search expression studies by condition
 - **Multiple Organisms** - Human, mouse, and other model organisms
 
 ## 🚀 Quick Start
@@ -93,6 +93,12 @@ User: "Get sequence from chr17:43044295-43125483"
 AI: [calls get_genomic_sequence] → Returns DNA sequence for specified coordinates
 ```
 
+### Disease Expression Datasets
+```
+User: "Find gene expression datasets for diabetes in mice"
+AI: [calls search_geo_datasets] → Returns GEO datasets with study details and methodology
+```
+
 ## 🛠️ Available Tools
 
 ### `gene_to_genomic_sequence`
@@ -119,6 +125,21 @@ Get genomic sequence from chromosome coordinates
 - `start` (required) - Start position
 - `end` (required) - End position
 - `organism` - Target organism (default: "human")
+
+### `search_geo_datasets`
+Search GEO datasets by disease/condition and organism
+
+**Parameters:**
+- `disease` (required) - Disease or condition name (e.g., "cancer", "diabetes", "Alzheimer")
+- `organism` - Target organism ("Homo sapiens", "Mus musculus", "Rattus norvegicus")
+- `study_type` - Expression study type (array, sequencing, etc.)
+- `max_results` - Maximum results to return (1-50, default: 10)
+
+**Returns:**
+- Dataset ID and accession numbers
+- Study methodology and platform information
+- Sample counts and experimental design
+- Research summaries and direct links
 
 ## ⚙️ Configuration
 
@@ -154,10 +175,11 @@ NCBI-Database-MCP/
 
 ## 📈 Performance Tips
 
-- Get NCBI API key for higher rate limits
-- Use appropriate sequence types for your needs
+- Get NCBI API key for higher rate limits (10 req/sec vs 3 req/sec)
+- Use specific disease terms for better GEO search results
 - Cache results for repeated queries
 - Consider organism-specific databases
+- Limit GEO search results to avoid large responses
 
 ## 🐛 Troubleshooting
 
@@ -168,6 +190,14 @@ NCBI-Database-MCP/
 # Check gene name spelling
 # Try alternative gene symbols
 # Verify organism specification
+```
+
+**No GEO datasets found**
+```bash
+# Try broader disease terms (e.g., "cancer" instead of "lung adenocarcinoma")
+# Check organism name (use "Homo sapiens" not "human")
+# Try without study_type filter
+# Verify disease spelling and terminology
 ```
 
 **API rate limiting**

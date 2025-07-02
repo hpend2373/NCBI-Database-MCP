@@ -27,6 +27,111 @@ NCBI_API_KEY = os.getenv('NCBI_API_KEY')  # Set via environment variable
 mcp = fastmcp.FastMCP("Gene-to-Genomic")
 
 @mcp.tool()
+def search_geo_datasets(disease: str, organism: str = "Homo sapiens", study_type: str = "", max_results: int = 10) -> str:
+    """
+    Search GEO datasets by disease/condition and organism.
+    
+    Args:
+        disease: Disease or condition name (e.g., 'cancer', 'diabetes', 'Alzheimer')
+        organism: Organism name (default: Homo sapiens)
+        study_type: Type of expression study (optional)
+        max_results: Maximum number of results (1-50, default: 10)
+    
+    Returns:
+        Formatted list of GEO datasets with study details and methodology information
+    """
+    try:
+        logger.info(f"Searching GEO datasets for: {disease} in {organism}")
+        
+        # Build search query
+        query_parts = [disease]
+        query_parts.append(f'"{organism}"[Organism]')
+        
+        if study_type:
+            query_parts.append(f'"{study_type}"[DataSet Type]')
+            
+        query = " AND ".join(query_parts)
+        
+        # Search GDS (Gene Expression Omnibus DataSets)
+        search_url = f"{NCBI_BASE_URL}/esearch.fcgi"
+        search_params = {
+            'db': 'gds',
+            'term': query,
+            'retmax': max_results,
+            'retmode': 'xml'
+        }
+        
+        if NCBI_API_KEY:
+            search_params['api_key'] = NCBI_API_KEY
+            
+        search_query = urllib.parse.urlencode(search_params)
+        search_request = urllib.request.Request(f"{search_url}?{search_query}")
+        
+        with urllib.request.urlopen(search_request) as response:
+            search_data = response.read().decode('utf-8')
+            
+        search_root = ET.fromstring(search_data)
+        id_list = search_root.find('.//IdList')
+        
+        if id_list is None or len(id_list) == 0:
+            return f"❌ No GEO datasets found for '{disease}' in {organism}"
+            
+        dataset_ids = [id_elem.text for id_elem in id_list.findall('Id')]
+        logger.info(f"Found {len(dataset_ids)} datasets")
+        
+        # Get detailed information
+        summary_url = f"{NCBI_BASE_URL}/esummary.fcgi"
+        summary_params = {
+            'db': 'gds',
+            'id': ','.join(dataset_ids),
+            'retmode': 'xml'
+        }
+        
+        if NCBI_API_KEY:
+            summary_params['api_key'] = NCBI_API_KEY
+            
+        summary_query = urllib.parse.urlencode(summary_params)
+        summary_request = urllib.request.Request(f"{summary_url}?{summary_query}")
+        
+        with urllib.request.urlopen(summary_request) as response:
+            summary_data = response.read().decode('utf-8')
+            
+        summary_root = ET.fromstring(summary_data)
+        
+        # Parse results
+        results = []
+        for doc_sum in summary_root.findall('.//DocSum'):
+            dataset_info = parse_geo_dataset(doc_sum)
+            if dataset_info:
+                results.append(dataset_info)
+                
+        if not results:
+            return f"❌ No detailed information available for GEO datasets"
+            
+        # Format output
+        output_lines = [
+            f"🧬 **GEO Datasets for '{disease}' in {organism}**",
+            f"Found {len(results)} dataset(s)\n"
+        ]
+        
+        for i, dataset in enumerate(results, 1):
+            output_lines.extend([
+                f"**{i}. {dataset['title']}**",
+                f"   📊 **GDS ID**: {dataset['accession']}",
+                f"   🔬 **Study Type**: {dataset['study_type']}",
+                f"   🧪 **Platform**: {dataset['platform']}",
+                f"   📈 **Sample Count**: {dataset['sample_count']}",
+                f"   📝 **Summary**: {dataset['summary'][:200]}{'...' if len(dataset['summary']) > 200 else ''}",
+                f"   🔗 **URL**: https://www.ncbi.nlm.nih.gov/sites/GDSbrowser?acc={dataset['accession']}\n"
+            ])
+            
+        return "\n".join(output_lines)
+        
+    except Exception as e:
+        logger.error(f"Error searching GEO datasets: {str(e)}")
+        return f"❌ Error searching GEO datasets: {str(e)}"
+
+@mcp.tool()
 def gene_to_sequence(gene_name: str, organism: str = "human") -> str:
     """
     Convert gene name to genomic DNA sequence using NCBI E-utilities.
