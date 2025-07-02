@@ -46,6 +46,27 @@ Add to your MCP client config:
     "ncbi-database": {
       "command": "python",
       "args": ["src/gene_to_genomic_server.py"],
+      "cwd": "/path/to/NCBI-Database-MCP",
+      "env": {
+        "NCBI_API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Set global environment variable**
+```bash
+export NCBI_API_KEY="your_api_key_here"
+```
+
+Then use simpler config:
+```json
+{
+  "mcpServers": {
+    "ncbi-database": {
+      "command": "python",
+      "args": ["src/gene_to_genomic_server.py"],
       "cwd": "/path/to/NCBI-Database-MCP"
     }
   }
@@ -103,8 +124,13 @@ Get genomic sequence from chromosome coordinates
 
 ### Environment Variables
 
+You can configure the server using environment variables:
+
 ```bash
-# NCBI API settings (optional but recommended for higher rate limits)
+# Copy example file and edit
+cp .env.example .env
+
+# Or set directly
 export NCBI_API_KEY="your_api_key_here"
 
 # Get your free API key from: https://www.ncbi.nlm.nih.gov/account/
@@ -119,6 +145,7 @@ NCBI-Database-MCP/
 ├── README.md                    # Documentation
 ├── requirements.txt             # Python dependencies
 ├── pyproject.toml              # Project configuration
+├── .env.example                # Environment variables template
 ├── run_fastmcp_gene_server.sh  # Launch script
 └── src/
     ├── gene_to_genomic_server.py  # Standard MCP server

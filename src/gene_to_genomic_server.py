@@ -28,7 +28,13 @@ class ServerSettings(BaseSettings):
     ncbi_api_key: Optional[str] = Field(default=None, description="NCBI API key for higher request limits (optional but recommended)")
     
     class Config:
-        env_prefix = "BIO_MCP_"
+        env_prefix = ""  # Allow both prefixed and non-prefixed env vars
+        
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Try to get NCBI API key from standard env var if not set
+        if not self.ncbi_api_key:
+            self.ncbi_api_key = os.getenv('NCBI_API_KEY')
 
 
 class GeneToGenomicServer:
