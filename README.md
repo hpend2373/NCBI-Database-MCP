@@ -104,9 +104,12 @@ Get genomic sequence from chromosome coordinates
 ### Environment Variables
 
 ```bash
-# NCBI API settings
-export NCBI_API_KEY="your_api_key_here"  # Optional but recommended
-export NCBI_EMAIL="your_email@example.com"  # Required for API access
+# NCBI API settings (optional but recommended for higher rate limits)
+export NCBI_API_KEY="your_api_key_here"
+
+# Get your free API key from: https://www.ncbi.nlm.nih.gov/account/
+# Without API key: 3 requests/second
+# With API key: 10 requests/second
 ```
 
 ## 📁 Project Structure
@@ -142,9 +145,10 @@ NCBI-Database-MCP/
 
 **API rate limiting**
 ```bash
+# Get free NCBI API key: https://www.ncbi.nlm.nih.gov/account/
 # Set NCBI_API_KEY environment variable
-# Add delays between requests
-# Use smaller batch sizes
+# Without key: 3 requests/second limit
+# With key: 10 requests/second limit
 ```
 
 **Network timeouts**

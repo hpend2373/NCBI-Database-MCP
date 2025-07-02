@@ -5,6 +5,7 @@ Simple and reliable implementation using FastMCP
 """
 
 import asyncio
+import os
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # NCBI Configuration
 NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-NCBI_API_KEY = "0e99890afeac38920e80efb7ef42539ef709"
+NCBI_API_KEY = os.getenv('NCBI_API_KEY')  # Set via environment variable
 
 # Create FastMCP server
 mcp = fastmcp.FastMCP("Gene-to-Genomic")

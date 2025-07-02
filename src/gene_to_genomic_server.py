@@ -25,7 +25,7 @@ class ServerSettings(BaseSettings):
     temp_dir: Optional[str] = Field(default=None, description="Temporary directory for processing")
     timeout: int = Field(default=300, description="Command timeout in seconds")
     ncbi_base_url: str = Field(default="https://eutils.ncbi.nlm.nih.gov/entrez/eutils", description="NCBI E-utilities base URL")
-    ncbi_api_key: Optional[str] = Field(default="0e99890afeac38920e80efb7ef42539ef709", description="NCBI API key for higher request limits")
+    ncbi_api_key: Optional[str] = Field(default=None, description="NCBI API key for higher request limits (optional but recommended)")
     
     class Config:
         env_prefix = "BIO_MCP_"
