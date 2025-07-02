@@ -3,7 +3,8 @@ BLAST MCP server with queue integration
 This extends the base BLAST server to support async job submission
 """
 from typing import Any, Optional
-from mcp.types import TextContent, ErrorContent
+from mcp.types import TextContent
+from mcp import McpError, ErrorData
 from .server import BlastServer
 import sys
 import os
@@ -112,7 +113,7 @@ class BlastServerWithQueue(QueueIntegrationMixin, BlastServer):
             else:
                 return await super(BlastServerWithQueue, self).server.call_tool(name, arguments)
     
-    async def _handle_blast_async(self, tool_name: str, arguments: dict) -> list[TextContent | ErrorContent]:
+    async def _handle_blast_async(self, tool_name: str, arguments: dict) -> list[TextContent]:
         """Handle async BLAST job submission"""
         try:
             # Extract queue parameters
@@ -145,9 +146,11 @@ class BlastServerWithQueue(QueueIntegrationMixin, BlastServer):
             )]
             
         except Exception as e:
-            return [ErrorContent(text=f"❌ Error submitting BLAST job: {str(e)}")]
+            raise McpError(
+                ErrorData(code=INTERNAL_ERROR, message=f"❌ Error submitting BLAST job: {str(e)}")
+            )
     
-    async def _handle_job_status(self, job_id: str) -> list[TextContent | ErrorContent]:
+    async def _handle_job_status(self, job_id: str) -> list[TextContent]:
         """Enhanced job status for BLAST"""
         try:
             job_info = await self.get_job_status(job_id)
@@ -169,9 +172,11 @@ class BlastServerWithQueue(QueueIntegrationMixin, BlastServer):
             return [TextContent(text=status_text)]
             
         except Exception as e:
-            return [ErrorContent(text=f"❌ Error checking job: {str(e)}")]
+            raise McpError(
+                ErrorData(code=INTERNAL_ERROR, message=f"❌ Error checking job: {str(e)}")
+            )
     
-    async def _handle_job_result(self, job_id: str) -> list[TextContent | ErrorContent]:
+    async def _handle_job_result(self, job_id: str) -> list[TextContent]:
         """Enhanced job results for BLAST"""
         try:
             result = await self.get_job_result(job_id)
@@ -205,15 +210,19 @@ class BlastServerWithQueue(QueueIntegrationMixin, BlastServer):
             return [TextContent(text=result_text)]
             
         except Exception as e:
-            return [ErrorContent(text=f"❌ Error retrieving results: {str(e)}")]
+            raise McpError(
+                ErrorData(code=INTERNAL_ERROR, message=f"❌ Error retrieving results: {str(e)}")
+            )
     
-    async def _handle_cancel_job(self, job_id: str) -> list[TextContent | ErrorContent]:
+    async def _handle_cancel_job(self, job_id: str) -> list[TextContent]:
         """Cancel BLAST job"""
         try:
             await self.cancel_job(job_id)
             return [TextContent(text=f"🛑 BLAST job {job_id} cancelled successfully")]
         except Exception as e:
-            return [ErrorContent(text=f"❌ Error cancelling job: {str(e)}")]
+            raise McpError(
+                ErrorData(code=INTERNAL_ERROR, message=f"❌ Error cancelling job: {str(e)}")
+            )
 
 
 # Example of how to use this

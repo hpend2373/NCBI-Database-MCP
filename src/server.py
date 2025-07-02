@@ -8,7 +8,8 @@ from typing import Any, Optional, Literal
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ImageContent, ErrorContent
+from mcp.types import Tool, TextContent, ImageContent
+from mcp import McpError, ErrorData
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
@@ -29,7 +30,7 @@ class ServerSettings(BaseSettings):
 class BlastServer:
     def __init__(self, settings: Optional[ServerSettings] = None):
         self.settings = settings or ServerSettings()
-        self.server = Server("bio-mcp-blast")
+        self.server = Server("bio-mcp-blast", version="0.1.0")
         self._setup_handlers()
         
     def _setup_handlers(self):
@@ -134,7 +135,7 @@ class BlastServer:
             ]
         
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: Any) -> list[TextContent | ImageContent | ErrorContent]:
+        async def call_tool(name: str, arguments: Any) -> list[TextContent | ImageContent]:
             if name == "blastn":
                 return await self._run_blast(arguments, "blastn")
             elif name == "blastp":
@@ -142,9 +143,11 @@ class BlastServer:
             elif name == "makeblastdb":
                 return await self._make_blast_db(arguments)
             else:
-                return [ErrorContent(text=f"Unknown tool: {name}")]
+                raise McpError(
+                    ErrorData(code="internal_error", message=f"Unknown tool: {name}")
+                )
     
-    async def _run_blast(self, arguments: dict, blast_type: str) -> list[TextContent | ErrorContent]:
+    async def _run_blast(self, arguments: dict, blast_type: str) -> list[TextContent]:
         try:
             query = arguments["query"]
             database = arguments["database"]
@@ -168,7 +171,12 @@ class BlastServer:
                     # It's a file
                     query_path = Path(query)
                     if query_path.stat().st_size > self.settings.max_file_size:
-                        return [ErrorContent(text=f"Query file too large. Maximum size: {self.settings.max_file_size} bytes")]
+                        raise McpError(
+                            ErrorData(
+                                code=INTERNAL_ERROR,
+                                message=f"Query file too large. Maximum size: {self.settings.max_file_size} bytes"
+                            )
+                        )
                     query_file.write_bytes(query_path.read_bytes())
                 else:
                     # It's a sequence string
@@ -201,10 +209,20 @@ class BlastServer:
                     )
                 except asyncio.TimeoutError:
                     process.kill()
-                    return [ErrorContent(text=f"BLAST search timed out after {self.settings.timeout} seconds")]
+                    raise McpError(
+                        ErrorData(
+                            code=INTERNAL_ERROR,
+                            message=f"BLAST search timed out after {self.settings.timeout} seconds"
+                        )
+                    )
                 
                 if process.returncode != 0:
-                    return [ErrorContent(text=f"BLAST failed: {stderr.decode()}")]
+                    raise McpError(
+                        ErrorData(
+                            code=INTERNAL_ERROR,
+                            message=f"BLAST failed: {stderr.decode()}"
+                        )
+                    )
                 
                 output = stdout.decode()
                 
@@ -217,9 +235,11 @@ class BlastServer:
                 
         except Exception as e:
             logger.error(f"Error running BLAST: {e}", exc_info=True)
-            return [ErrorContent(text=f"Error: {str(e)}")]
+            raise McpError(
+                ErrorData(code=INTERNAL_ERROR, message=f"Error: {str(e)}")
+            )
     
-    async def _make_blast_db(self, arguments: dict) -> list[TextContent | ErrorContent]:
+    async def _make_blast_db(self, arguments: dict) -> list[TextContent]:
         try:
             input_file = Path(arguments["input_file"])
             database_name = arguments["database_name"]
@@ -227,10 +247,20 @@ class BlastServer:
             title = arguments.get("title", database_name)
             
             if not input_file.exists():
-                return [ErrorContent(text=f"Input file not found: {input_file}")]
+                raise McpError(
+                    ErrorData(
+                        code=INTERNAL_ERROR,
+                        message=f"Input file not found: {input_file}"
+                    )
+                )
             
             if input_file.stat().st_size > self.settings.max_file_size:
-                return [ErrorContent(text=f"File too large. Maximum size: {self.settings.max_file_size} bytes")]
+                raise McpError(
+                    ErrorData(
+                        code=INTERNAL_ERROR,
+                        message=f"File too large. Maximum size: {self.settings.max_file_size} bytes"
+                    )
+                )
             
             with tempfile.TemporaryDirectory(dir=self.settings.temp_dir) as tmpdir:
                 # Copy input file
@@ -260,7 +290,12 @@ class BlastServer:
                 stdout, stderr = await process.communicate()
                 
                 if process.returncode != 0:
-                    return [ErrorContent(text=f"makeblastdb failed: {stderr.decode()}")]
+                    raise McpError(
+                        ErrorData(
+                            code=INTERNAL_ERROR,
+                            message=f"makeblastdb failed: {stderr.decode()}"
+                        )
+                    )
                 
                 # List created files
                 created_files = list(Path(tmpdir).glob(f"{database_name}.*"))
@@ -274,16 +309,21 @@ class BlastServer:
                 
         except Exception as e:
             logger.error(f"Error creating BLAST database: {e}", exc_info=True)
-            return [ErrorContent(text=f"Error: {str(e)}")]
+            raise McpError(
+                ErrorData(code=INTERNAL_ERROR, message=f"Error: {str(e)}")
+            )
     
     async def run(self):
         async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(read_stream, write_stream)
+            await self.server.run(read_stream, write_stream, {})
 
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+    import sys
+    logging.basicConfig(level=logging.DEBUG)
+    print("Starting bio-mcp-blast server...", file=sys.stderr)
     server = BlastServer()
+    print("Server initialized, starting run...", file=sys.stderr)
     await server.run()
 
 

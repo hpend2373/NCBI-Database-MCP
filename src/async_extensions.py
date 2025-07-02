@@ -7,7 +7,7 @@ from typing import Any, Optional
 from pathlib import Path
 import httpx
 
-from mcp.types import Tool, TextContent, ErrorContent
+from mcp.types import Tool, TextContent
 from pydantic import BaseModel, Field
 
 # Import the original server
@@ -95,7 +95,7 @@ class AsyncBlastServer(BaseBlastServer):
             return base_tools + async_tools
         
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: Any) -> list[TextContent | ErrorContent]:
+        async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             # Handle async tools
             if name == "blastn_async":
                 return await self._submit_blast_job(arguments, "blastn")
@@ -107,7 +107,7 @@ class AsyncBlastServer(BaseBlastServer):
                 # Delegate to parent class
                 return await super(AsyncBlastServer, self).server.call_tool(name, arguments)
     
-    async def _submit_blast_job(self, arguments: dict, blast_type: str) -> list[TextContent | ErrorContent]:
+    async def _submit_blast_job(self, arguments: dict, blast_type: str) -> list[TextContent]:
         """Submit BLAST job to queue"""
         try:
             # Generate job ID
@@ -130,7 +130,7 @@ class AsyncBlastServer(BaseBlastServer):
                 )
                 
                 if response.status_code != 200:
-                    return [ErrorContent(text=f"Failed to submit job: {response.text}")]
+                    return [TextContent(text=f"Failed to submit job: {response.text}")]
                 
                 job_info = response.json()
                 
@@ -143,9 +143,9 @@ class AsyncBlastServer(BaseBlastServer):
                 )]
                 
         except Exception as e:
-            return [ErrorContent(text=f"Error submitting job: {str(e)}")]
+            return [TextContent(text=f"Error submitting job: {str(e)}")]
     
-    async def _get_job_status(self, job_id: str) -> list[TextContent | ErrorContent]:
+    async def _get_job_status(self, job_id: str) -> list[TextContent]:
         """Get job status from queue"""
         try:
             async with httpx.AsyncClient() as client:
@@ -155,9 +155,9 @@ class AsyncBlastServer(BaseBlastServer):
                 )
                 
                 if response.status_code == 404:
-                    return [ErrorContent(text=f"Job {job_id} not found")]
+                    return [TextContent(text=f"Job {job_id} not found")]
                 elif response.status_code != 200:
-                    return [ErrorContent(text=f"Failed to get job status: {response.text}")]
+                    return [TextContent(text=f"Failed to get job status: {response.text}")]
                 
                 job_info = response.json()
                 
@@ -180,9 +180,9 @@ class AsyncBlastServer(BaseBlastServer):
                 return [TextContent(text=status_text)]
                 
         except Exception as e:
-            return [ErrorContent(text=f"Error checking job status: {str(e)}")]
+            return [TextContent(text=f"Error checking job status: {str(e)}")]
     
-    async def _get_job_result(self, job_id: str) -> list[TextContent | ErrorContent]:
+    async def _get_job_result(self, job_id: str) -> list[TextContent]:
         """Get job results from storage"""
         try:
             async with httpx.AsyncClient() as client:
@@ -192,14 +192,14 @@ class AsyncBlastServer(BaseBlastServer):
                 )
                 
                 if response.status_code == 404:
-                    return [ErrorContent(text=f"Job {job_id} not found")]
+                    return [TextContent(text=f"Job {job_id} not found")]
                 elif response.status_code != 200:
-                    return [ErrorContent(text=f"Failed to get job result: {response.text}")]
+                    return [TextContent(text=f"Failed to get job result: {response.text}")]
                 
                 result = response.json()
                 
                 if result['status'] != 'completed':
-                    return [ErrorContent(text=f"Job is not completed yet. Status: {result['status']}")]
+                    return [TextContent(text=f"Job is not completed yet. Status: {result['status']}")]
                 
                 # For demo, return summary + download link
                 result_text = f"Job {job_id} Results\n"
@@ -217,4 +217,4 @@ class AsyncBlastServer(BaseBlastServer):
                 return [TextContent(text=result_text)]
                 
         except Exception as e:
-            return [ErrorContent(text=f"Error retrieving job results: {str(e)}")]
+            return [TextContent(text=f"Error retrieving job results: {str(e)}")]

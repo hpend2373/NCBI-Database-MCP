@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "bio-blast": {
+      "command": "python",
+      "args": ["-m", "src.server"],
+      "cwd": "/Users/minyeop/alphagenome/bio-mcp-blast",
+      "env": {
+        "PATH": "/Users/minyeop/alphagenome/bio-mcp-blast/venv/bin:/opt/homebrew/bin:$PATH"
+      }
+    }
+  }
+}
