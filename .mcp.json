@@ -2,9 +2,9 @@
   "mcpServers": {
     "gene-to-genomic": {
       "type": "stdio",
-      "command": "/Users/minyeop/alphagenome/bio-mcp-blast/venv/bin/python",
+      "command": "/Users/minyeop/alphagenome/bio-mcp-blast/.venv/bin/python",
       "args": [
-        "src/gene_server_v2.py"
+        "src/gene_to_genomic_server.py"
       ],
       "env": {
         "PYTHONPATH": "/Users/minyeop/alphagenome/bio-mcp-blast"

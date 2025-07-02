@@ -143,9 +143,9 @@ class GeneToGenomicServer:
                             },
                             "study_type": {
                                 "type": "string",
-                                "description": "Type of expression study (optional)",
+                                "description": "Type of expression study (default: Expression profiling by high throughput sequencing)",
                                 "enum": ["Expression profiling by array", "Expression profiling by high throughput sequencing", "Genome binding/occupancy profiling by high throughput sequencing"],
-                                "default": ""
+                                "default": "Expression profiling by high throughput sequencing"
                             },
                             "max_results": {
                                 "type": "integer",
@@ -266,7 +266,7 @@ class GeneToGenomicServer:
         try:
             disease = arguments["disease"]
             organism = arguments.get("organism", "Homo sapiens")
-            study_type = arguments.get("study_type", "")
+            study_type = arguments.get("study_type", "Expression profiling by high throughput sequencing")
             max_results = arguments.get("max_results", 10)
             
             logger.info(f"Searching GEO datasets for: {disease} in {organism}")
@@ -342,6 +342,7 @@ class GeneToGenomicServer:
                 output_lines.extend([
                     f"**{i}. {dataset['title']}**",
                     f"   📊 **GDS ID**: {dataset['accession']}",
+                    f"   🧬 **Data Type**: {dataset['data_type']}",
                     f"   🔬 **Study Type**: {dataset['study_type']}",
                     f"   🧪 **Platform**: {dataset['platform']}",
                     f"   📈 **Sample Count**: {dataset['sample_count']}",
@@ -392,12 +393,48 @@ class GeneToGenomicServer:
             dataset.setdefault('sample_count', 'Unknown')
             dataset.setdefault('accession', 'Unknown')
             
+            # Add data type classification
+            dataset['data_type'] = self._classify_data_type(dataset['title'], dataset['summary'])
+            
             return dataset
             
         except Exception as e:
             logger.error(f"Error parsing GEO dataset: {str(e)}")
             return None
     
+    def _classify_data_type(self, title: str, summary: str) -> str:
+        """Classify whether the dataset is single-cell, bulk, or spatial transcriptomics"""
+        text_to_check = f"{title} {summary}".lower()
+        
+        # Single-cell indicators
+        sc_indicators = [
+            'single cell', 'single-cell', 'scrnaseq', 'scrna-seq', 'scrna seq',
+            'single cell rna', 'single cell rna-seq', 'single cell rnaseq',
+            'single-cell rna', 'single-cell rna-seq', 'single-cell rnaseq',
+            'sc-rna', 'scRNA', 'dropseq', 'drop-seq', '10x genomics', '10x chromium',
+            'single cell transcriptom', 'single-cell transcriptom'
+        ]
+        
+        # Spatial indicators
+        spatial_indicators = [
+            'spatial', 'visium', 'slide-seq', 'slideseq', 'merfish', 'seqfish',
+            'spatial transcriptom', 'spatially resolved', 'in situ sequencing',
+            'spatial rna', 'spatial rna-seq', 'spatial gene expression'
+        ]
+        
+        # Check for single-cell
+        for indicator in sc_indicators:
+            if indicator in text_to_check:
+                return '🧩 Single-Cell RNA-Seq'
+        
+        # Check for spatial
+        for indicator in spatial_indicators:
+            if indicator in text_to_check:
+                return '🗺️ Spatial Transcriptomics'
+        
+        # Default to bulk
+        return '📦 Bulk RNA-Seq'
+
     def _get_study_type_description(self, entry_type: str) -> str:
         """Get descriptive study type"""
         study_types = {

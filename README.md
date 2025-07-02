@@ -28,13 +28,21 @@ pip install -r requirements.txt
 
 ### Basic Usage
 
+**🚀 RECOMMENDED: Use FastMCP Server for Best Performance**
+
 ```bash
-# Start the FastMCP server (recommended)
+# Start the FastMCP server (RECOMMENDED)
 ./run_fastmcp_gene_server.sh
 
-# Or start the standard MCP server
+# Alternative: Standard MCP server (slower startup)
 python src/gene_to_genomic_server.py
 ```
+
+**Why FastMCP?**
+- ⚡ **Faster startup** - Instant server initialization
+- 🔧 **Easier debugging** - Better error messages and logging
+- 📊 **Built-in monitoring** - Performance metrics included
+- 🎯 **Optimized for research** - Designed specifically for bioinformatics workflows
 
 ### Configuration
 
@@ -123,17 +131,22 @@ AI: [calls get_genomic_sequence] → Returns DNA sequence for specified coordina
   - Examples: "cancer", "diabetes", "Alzheimer", "heart disease", "depression"
 - `organism` - Target organism (default: "Homo sapiens")
   - Options: "Homo sapiens", "Mus musculus", "Rattus norvegicus"
-- `study_type` - Expression study methodology (optional)
+- `study_type` - Expression study methodology (optional, default: "Expression profiling by high throughput sequencing")
   - Options: "Expression profiling by array", "Expression profiling by high throughput sequencing"
+  - **Default: RNA-Seq** - Most comprehensive and current sequencing technology
 - `max_results` - Maximum results to return (1-50, default: 10)
 
 **Detailed Output:**
 - **📊 Dataset Information**: GDS accession numbers and titles
 - **🔬 Study Methodology**: 
-  - RNA-Seq (High-throughput transcriptome sequencing)
+  - RNA-Seq (High-throughput transcriptome sequencing) - **DEFAULT**
   - Microarray (Hybridization-based gene expression)
   - ChIP-Seq (Chromatin immunoprecipitation sequencing)
   - SAGE (Serial analysis of gene expression)
+- **🧬 Data Type Classification**:
+  - **Single-Cell RNA-Seq** 🧩 - Individual cell-level gene expression
+  - **Bulk RNA-Seq** 📦 - Tissue/population-level gene expression
+  - **Spatial Transcriptomics** 🗺️ - Location-aware gene expression
 - **🧪 Platform Details**: Illumina, Affymetrix, Agilent technologies
 - **📈 Experimental Design**: Sample counts, tissue types, treatment conditions
 - **📝 Research Context**: Study summaries and disease relevance

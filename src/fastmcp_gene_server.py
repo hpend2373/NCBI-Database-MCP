@@ -27,14 +27,14 @@ NCBI_API_KEY = os.getenv('NCBI_API_KEY')  # Set via environment variable
 mcp = fastmcp.FastMCP("Gene-to-Genomic")
 
 @mcp.tool()
-def search_geo_datasets(disease: str, organism: str = "Homo sapiens", study_type: str = "", max_results: int = 10) -> str:
+def search_geo_datasets(disease: str, organism: str = "Homo sapiens", study_type: str = "Expression profiling by high throughput sequencing", max_results: int = 10) -> str:
     """
     Search GEO datasets by disease/condition and organism.
     
     Args:
         disease: Disease or condition name (e.g., 'cancer', 'diabetes', 'Alzheimer')
         organism: Organism name (default: Homo sapiens)
-        study_type: Type of expression study (optional)
+        study_type: Type of expression study (default: Expression profiling by high throughput sequencing)
         max_results: Maximum number of results (1-50, default: 10)
     
     Returns:
@@ -118,6 +118,7 @@ def search_geo_datasets(disease: str, organism: str = "Homo sapiens", study_type
             output_lines.extend([
                 f"**{i}. {dataset['title']}**",
                 f"   📊 **GDS ID**: {dataset['accession']}",
+                f"   🧬 **Data Type**: {dataset['data_type']}",
                 f"   🔬 **Study Type**: {dataset['study_type']}",
                 f"   🧪 **Platform**: {dataset['platform']}",
                 f"   📈 **Sample Count**: {dataset['sample_count']}",
@@ -185,9 +186,11 @@ def search_gene(gene_name: str, organism: str) -> Optional[str]:
             "db": "gene",
             "term": query,
             "retmode": "xml",
-            "retmax": "1",
-            "api_key": NCBI_API_KEY
+            "retmax": "1"
         }
+        
+        if NCBI_API_KEY:
+            params["api_key"] = NCBI_API_KEY
         
         url = f"{NCBI_BASE_URL}/esearch.fcgi?{urllib.parse.urlencode(params)}"
         response = http_request(url)
@@ -208,9 +211,11 @@ def get_coordinates(gene_id: str) -> Optional[dict]:
         params = {
             "db": "gene",
             "id": gene_id,
-            "retmode": "xml",
-            "api_key": NCBI_API_KEY
+            "retmode": "xml"
         }
+        
+        if NCBI_API_KEY:
+            params["api_key"] = NCBI_API_KEY
         
         url = f"{NCBI_BASE_URL}/esummary.fcgi?{urllib.parse.urlencode(params)}"
         response = http_request(url)
@@ -258,9 +263,11 @@ def fetch_sequence(chromosome: str, start: int, end: int) -> Optional[str]:
             "seq_start": str(start),
             "seq_stop": str(end),
             "rettype": "fasta",
-            "retmode": "text",
-            "api_key": NCBI_API_KEY
+            "retmode": "text"
         }
+        
+        if NCBI_API_KEY:
+            params["api_key"] = NCBI_API_KEY
         
         url = f"{NCBI_BASE_URL}/efetch.fcgi?{urllib.parse.urlencode(params)}"
         response = http_request(url)
@@ -269,6 +276,104 @@ def fetch_sequence(chromosome: str, start: int, end: int) -> Optional[str]:
     except Exception as e:
         logger.error(f"Sequence fetch error: {e}")
         return None
+
+def parse_geo_dataset(doc_sum) -> Optional[dict]:
+    """Parse GEO dataset information from XML DocSum"""
+    try:
+        dataset = {}
+        
+        # Get basic info
+        id_elem = doc_sum.find('Id')
+        if id_elem is not None:
+            dataset['id'] = id_elem.text
+        
+        # Parse Items
+        items = doc_sum.findall('.//Item')
+        for item in items:
+            name = item.get('Name', '')
+            
+            if name == 'Accession':
+                dataset['accession'] = item.text or ''
+            elif name == 'title':
+                dataset['title'] = item.text or ''
+            elif name == 'summary':
+                dataset['summary'] = item.text or ''
+            elif name == 'GPL':
+                dataset['platform'] = item.text or ''
+            elif name == 'SSInfo':
+                dataset['sample_count'] = item.text or '0'
+            elif name == 'gdsType':
+                dataset['study_type'] = get_study_type_description(item.text or '')
+        
+        # Ensure required fields exist
+        if not dataset.get('accession'):
+            return None
+            
+        # Set defaults for missing fields
+        dataset.setdefault('title', 'No title available')
+        dataset.setdefault('summary', 'No summary available')
+        dataset.setdefault('platform', 'Unknown platform')
+        dataset.setdefault('sample_count', '0')
+        dataset.setdefault('study_type', 'Unknown study type')
+        
+        # Add data type classification
+        dataset['data_type'] = classify_data_type(dataset['title'], dataset['summary'])
+        
+        return dataset
+        
+    except Exception as e:
+        logger.error(f"Error parsing GEO dataset: {e}")
+        return None
+
+def classify_data_type(title: str, summary: str) -> str:
+    """Classify whether the dataset is single-cell, bulk, or spatial transcriptomics"""
+    text_to_check = f"{title} {summary}".lower()
+    
+    # Single-cell indicators
+    sc_indicators = [
+        'single cell', 'single-cell', 'scrnaseq', 'scrna-seq', 'scrna seq',
+        'single cell rna', 'single cell rna-seq', 'single cell rnaseq',
+        'single-cell rna', 'single-cell rna-seq', 'single-cell rnaseq',
+        'sc-rna', 'scRNA', 'dropseq', 'drop-seq', '10x genomics', '10x chromium',
+        'single cell transcriptom', 'single-cell transcriptom'
+    ]
+    
+    # Spatial indicators
+    spatial_indicators = [
+        'spatial', 'visium', 'slide-seq', 'slideseq', 'merfish', 'seqfish',
+        'spatial transcriptom', 'spatially resolved', 'in situ sequencing',
+        'spatial rna', 'spatial rna-seq', 'spatial gene expression'
+    ]
+    
+    # Check for single-cell
+    for indicator in sc_indicators:
+        if indicator in text_to_check:
+            return '🧩 Single-Cell RNA-Seq'
+    
+    # Check for spatial
+    for indicator in spatial_indicators:
+        if indicator in text_to_check:
+            return '🗺️ Spatial Transcriptomics'
+    
+    # Default to bulk
+    return '📦 Bulk RNA-Seq'
+
+def get_study_type_description(study_type: str) -> str:
+    """Get human-readable description of study type"""
+    type_descriptions = {
+        'Expression profiling by array': '🔬 Microarray Expression Analysis - Hybridization-based gene expression profiling using DNA microarrays',
+        'Expression profiling by high throughput sequencing': '🧬 RNA-Seq Analysis - High-throughput transcriptome sequencing for comprehensive gene expression',
+        'Genome binding/occupancy profiling by high throughput sequencing': '🎯 ChIP-Seq Analysis - Chromatin immunoprecipitation with sequencing for protein-DNA interactions',
+        'Expression profiling by SAGE': '📊 SAGE Analysis - Serial analysis of gene expression using short sequence tags',
+        'Expression profiling by RT-PCR': '🔍 RT-PCR Analysis - Reverse transcription PCR for targeted gene expression',
+        'Protein profiling by protein array': '🧪 Protein Array - Protein expression profiling using antibody arrays',
+        'Non-coding RNA profiling by high throughput sequencing': '🔗 ncRNA-Seq - Non-coding RNA sequencing for regulatory RNA analysis',
+        'Methylation profiling by high throughput sequencing': '⚡ Bisulfite-Seq - DNA methylation profiling through bisulfite sequencing',
+        'SNP genotyping by SNP array': '🧬 SNP Array - Single nucleotide polymorphism genotyping using DNA arrays',
+        'Genome variation profiling by high throughput sequencing': '🔄 WGS/Exome-Seq - Whole genome or exome sequencing for variant detection'
+    }
+    
+    return type_descriptions.get(study_type, f'🔬 {study_type}' if study_type else 'Unknown methodology')
 
 def http_request(url: str) -> str:
     """Make HTTP request"""
