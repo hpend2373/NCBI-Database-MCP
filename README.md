@@ -1,17 +1,17 @@
 # NCBI Database MCP
 
-🔍 **MCP server for NCBI bioinformatics tools and database access**
+🔍 **MCP server for NCBI bioinformatics tools and disease-focused gene expression research**
 
-Enable AI assistants to perform gene searches, BLAST analysis, and genomic sequence retrieval through natural language. Access NCBI databases including Gene, PubMed, and BLAST services.
+Enable AI assistants to discover gene expression datasets by disease/condition, convert gene names to genomic sequences, and access comprehensive NCBI databases through natural language. Perfect for researchers studying disease mechanisms and therapeutic targets.
 
 ## 🧬 Features
 
-- **Gene-to-Genomic Conversion** - Convert gene names to genomic DNA sequences
-- **GEO Dataset Search** - Find gene expression datasets by disease and organism
-- **NCBI Database Access** - Gene, GEO, and sequence databases
-- **Multiple Output Formats** - FASTA, GenBank, JSON
-- **Disease-Focused Research** - Search expression studies by condition
-- **Multiple Organisms** - Human, mouse, and other model organisms
+- **🔬 Disease-Focused GEO Search** - Discover gene expression datasets by disease/condition and organism
+- **📊 Comprehensive Study Metadata** - Get detailed methodology, platform, and sample information
+- **🧬 Gene-to-Genomic Conversion** - Convert gene names to genomic DNA sequences
+- **🐭 Multi-Species Support** - Human, mouse, and rat datasets
+- **📈 Research Methodology Details** - RNA-Seq, microarray, ChIP-Seq, and other techniques
+- **🔗 Direct Database Links** - Easy access to full datasets and original studies
 
 ## 🚀 Quick Start
 
@@ -75,71 +75,94 @@ Then use simpler config:
 
 ## 💡 Usage Examples
 
-### Gene to Genomic Sequence
+### 🔬 Disease Expression Research (Primary Use Case)
+```
+User: "Find gene expression datasets for Alzheimer's disease in humans"
+AI: [calls search_geo_datasets] → 
+📊 Returns 10 datasets with:
+- Study methodology (RNA-Seq, Microarray)
+- Sample sizes and experimental design
+- Platform information (Illumina, Affymetrix)
+- Research summaries and direct GEO links
+```
+
+```
+User: "Show me cancer expression studies in mice using RNA sequencing"
+AI: [calls search_geo_datasets] → 
+🧪 Filtered results showing:
+- RNA-Seq datasets only
+- Mouse-specific cancer studies
+- Detailed experimental protocols
+```
+
+### 🧬 Gene-to-Genomic Analysis
 ```
 User: "Get the genomic sequence for BRCA1"
 AI: [calls gene_to_genomic_sequence] → Returns genomic DNA sequence in FASTA format
 ```
 
-### Gene Information Search
+### 📍 Gene Information & Location
 ```
 User: "Find information about TP53 gene"
 AI: [calls search_gene_info] → Returns gene location, function, and coordinates
 ```
 
-### Coordinate-Based Sequence
+### 🎯 Coordinate-Based Sequence Retrieval
 ```
 User: "Get sequence from chr17:43044295-43125483"
 AI: [calls get_genomic_sequence] → Returns DNA sequence for specified coordinates
 ```
 
-### Disease Expression Datasets
-```
-User: "Find gene expression datasets for diabetes in mice"
-AI: [calls search_geo_datasets] → Returns GEO datasets with study details and methodology
-```
-
 ## 🛠️ Available Tools
 
-### `gene_to_genomic_sequence`
+### 🔬 `search_geo_datasets` (Primary Tool)
+**Discover gene expression datasets by disease/condition and organism**
+
+**Parameters:**
+- `disease` (required) - Disease or condition name
+  - Examples: "cancer", "diabetes", "Alzheimer", "heart disease", "depression"
+- `organism` - Target organism (default: "Homo sapiens")
+  - Options: "Homo sapiens", "Mus musculus", "Rattus norvegicus"
+- `study_type` - Expression study methodology (optional)
+  - Options: "Expression profiling by array", "Expression profiling by high throughput sequencing"
+- `max_results` - Maximum results to return (1-50, default: 10)
+
+**Detailed Output:**
+- **📊 Dataset Information**: GDS accession numbers and titles
+- **🔬 Study Methodology**: 
+  - RNA-Seq (High-throughput transcriptome sequencing)
+  - Microarray (Hybridization-based gene expression)
+  - ChIP-Seq (Chromatin immunoprecipitation sequencing)
+  - SAGE (Serial analysis of gene expression)
+- **🧪 Platform Details**: Illumina, Affymetrix, Agilent technologies
+- **📈 Experimental Design**: Sample counts, tissue types, treatment conditions
+- **📝 Research Context**: Study summaries and disease relevance
+- **🔗 Direct Access**: Links to full datasets on NCBI GEO
+
+### 🧬 `gene_to_genomic_sequence`
 Convert gene name to genomic DNA sequence
 
 **Parameters:**
-- `gene_name` (required) - Gene symbol or name
+- `gene_name` (required) - Gene symbol (e.g., "BRCA1", "TP53")
 - `organism` - Target organism (default: "human")
 - `sequence_type` - "genomic", "cds", "mrna", "protein"
 - `output_format` - "fasta", "genbank", "json"
 
-### `search_gene_info`
+### 📍 `search_gene_info`
 Search for gene information and genomic location
 
 **Parameters:**
 - `gene_name` (required) - Gene symbol or name
 - `organism` - Target organism (default: "human")
 
-### `get_genomic_sequence`
+### 🎯 `get_genomic_sequence`
 Get genomic sequence from chromosome coordinates
 
 **Parameters:**
-- `chromosome` (required) - Chromosome number/name
+- `chromosome` (required) - Chromosome accession (e.g., "NC_000017.11")
 - `start` (required) - Start position
 - `end` (required) - End position
-- `organism` - Target organism (default: "human")
-
-### `search_geo_datasets`
-Search GEO datasets by disease/condition and organism
-
-**Parameters:**
-- `disease` (required) - Disease or condition name (e.g., "cancer", "diabetes", "Alzheimer")
-- `organism` - Target organism ("Homo sapiens", "Mus musculus", "Rattus norvegicus")
-- `study_type` - Expression study type (array, sequencing, etc.)
-- `max_results` - Maximum results to return (1-50, default: 10)
-
-**Returns:**
-- Dataset ID and accession numbers
-- Study methodology and platform information
-- Sample counts and experimental design
-- Research summaries and direct links
+- `output_format` - "fasta", "json"
 
 ## ⚙️ Configuration
 
@@ -175,11 +198,16 @@ NCBI-Database-MCP/
 
 ## 📈 Performance Tips
 
-- Get NCBI API key for higher rate limits (10 req/sec vs 3 req/sec)
-- Use specific disease terms for better GEO search results
-- Cache results for repeated queries
-- Consider organism-specific databases
-- Limit GEO search results to avoid large responses
+### 🔬 GEO Dataset Search Optimization
+- **Use specific disease terms**: "lung cancer" > "cancer", "type 2 diabetes" > "diabetes"
+- **Combine with study types**: Filter by methodology for targeted results
+- **Start with small result sets**: Use max_results=5-10 for initial exploration
+- **Organism specificity**: Use exact names ("Homo sapiens" not "human")
+
+### 🚀 API Performance
+- **Get NCBI API key**: 10 requests/second vs 3 requests/second without key
+- **Batch similar queries**: Group related searches together
+- **Cache results**: Store frequently accessed datasets locally
 
 ## 🐛 Troubleshooting
 
