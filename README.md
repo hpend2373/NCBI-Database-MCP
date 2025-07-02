@@ -2,7 +2,7 @@
 
 🔍 **MCP server for NCBI bioinformatics tools and disease-focused gene expression research**
 
-Enable AI assistants to discover gene expression datasets by disease/condition, convert gene names to genomic sequences, and access comprehensive NCBI databases through natural language. Perfect for researchers studying disease mechanisms and therapeutic targets.
+Enable AI assistants to discover gene expression datasets by disease/condition and access comprehensive NCBI databases through natural language. Perfect for researchers studying disease mechanisms and therapeutic targets.
 
 ## 🧬 Features
 
