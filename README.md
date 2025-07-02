@@ -249,13 +249,6 @@ NCBI-Database-MCP/
 - **[Gene Database](https://www.ncbi.nlm.nih.gov/gene)**
 - **[BLAST Documentation](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs)**
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
 
 ## 📄 License
 
